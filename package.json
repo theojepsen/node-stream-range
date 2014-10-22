@@ -1,0 +1,29 @@
+{
+  "name": "stream-range",
+  "description": "Read a specific range (slice) of a stream",
+  "tags": [
+    "stream",
+    "slice",
+    "range",
+    "buffer",
+    "buffered"
+  ],
+  "main": "./index.js",
+  "author": {
+    "name": "Theo Jepsen"
+  },
+  "version": "0.0.1",
+  "devDependencies": {
+    "expect.js": "0.3.1",
+    "streamifier": "0.1.0",
+    "raw-body": "1.3.0",
+    "brake": "1.0.1",
+    "async": "0.9.0",
+    "buffer-equal": "0.0.1"
+  },
+  "dependencies": {
+  },
+  "scripts": {
+    "test": "./node_modules/.bin/mocha test.js"
+  }
+}
