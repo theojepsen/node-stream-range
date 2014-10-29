@@ -6,6 +6,7 @@ var brake = require('brake');
 var async = require('async');
 var expect = require('expect.js');
 var bufferEqual = require('buffer-equal');
+var EventEmitter = require('events').EventEmitter;
 
 
 var string36 = "0123456789abcdefghijklmnopqrstuvwxyz";
@@ -258,6 +259,36 @@ describe('Buffered Streams', function () {
       expect(buff.length).to.be(39);
       expect(bufferEqual(buff, bigBuffer.slice(bigBuffer.length - 40, bigBuffer.length - 1))).to.be.ok();
       expect(bs.buffer.length).to.be.within(bigBuffer.length, Infinity);
+      done();
+    });
+  });
+
+  it('should pipe to many consumers without a memory leak', function (done) {
+    var bs = StreamRange.BufferedStream(1024 * 1024 * 1);
+    var bigstream = streamifier.createReadStream(bigBuffer);
+
+    var listenerCount = 0;
+    bs.on('removeListener', function () {  listenerCount--; });
+    bs.on('newListener', function () { listenerCount++; });
+
+    function makeConsumer(from, to) {
+      return function (cb) {
+        getRawBody(bs.range(from, to), function (err, buff) {
+          expect(buff.length).to.be(to - from);
+          expect(bufferEqual(buff, bigBuffer.slice(from, to))).to.be.ok();
+          cb();
+        });
+      };
+    }
+    var consumers = [];
+    for (var i = 0; i < 30; i++) consumers.push(makeConsumer(5, 20));
+
+    bigstream.pipe(bs);
+    async.waterfall(consumers, function (error) {
+      expect(EventEmitter.listenerCount(bs, 'finish')).to.be(0);
+      expect(EventEmitter.listenerCount(bs, 'data')).to.be(0);
+      expect(listenerCount).to.be(0);
+      expect(error).to.not.be.ok();
       done();
     });
   });

@@ -49,12 +49,15 @@ function ReadRange(bufferedStream, start, end) {
   self._end = end || Infinity;
 
   self.started = false;
-
-  self.bufferedStream.on('finish', function () {
-    self.push(null);
-  });
-
   Stream.Readable.call(self);
+
+  function onceFinish() {
+    self.push(null);
+  }
+  self.bufferedStream.once('finish', onceFinish);
+  self.once('end', function () {
+    self.bufferedStream.removeListener('finish', onceFinish);
+  });
 }
 util.inherits(ReadRange, Stream.Readable);
 
@@ -88,9 +91,13 @@ ReadRange.prototype._read = function (size) {
   if (self.started) return;
   self.started = true;
   copyAllAvailable(self);
+  function newDataListener () {
+    copyAllAvailable(self);
+  }
   if (self.cursor != self._end) {
-    self.bufferedStream.on('data', function (l) {
-      copyAllAvailable(self);
+    self.bufferedStream.on('data', newDataListener);
+    self.once('end', function () {
+      self.bufferedStream.removeListener('data', newDataListener);
     });
   }
 };
